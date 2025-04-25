@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"slices"
@@ -43,7 +44,14 @@ func crash(opts []string) error {
 		return ErrNoCrashdump
 	}
 
-	bytes, err := os.ReadFile(file)
+	var bytes []byte
+	var err error
+	if file == "stdin" {
+		bytes, err = io.ReadAll(os.Stdin)
+	} else {
+		bytes, err = os.ReadFile(file)
+	}
+
 	if err != nil {
 		return err
 	}
@@ -109,7 +117,7 @@ func crash(opts []string) error {
 const MAGIC = 0x50554c44
 
 func verifyMagic(bytes []byte) error {
-	if len(bytes) < 4 {
+	if len(bytes) < 1000 {
 		return fmt.Errorf(FmtErrTooShort, len(bytes))
 	}
 

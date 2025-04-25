@@ -24,7 +24,7 @@ ppeb's pulsar tools!!!
 
 Usage: ./pulsar-tools [subcommand] [options]
  crash            Analyze crashdump
-     -f|--file        Crashdump to analyze
+     -f|--file        Crashdump to analyze. Pass 'stdin' to accept a crashdump over stdin
 `)
 
 	os.Exit(1)
