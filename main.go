@@ -32,7 +32,7 @@ Usage: ./pulsar-tools [subcommand] [options]
 
 func main() {
 	if len(os.Args) <= 1 {
-		fmt.Println("No arguments provided! A subcommand is required to continue.")
+		fmt.Fprintln(os.Stderr, "No arguments provided! A subcommand is required to continue.")
 		print_help()
 	}
 
@@ -53,12 +53,12 @@ func main() {
 	case "crash":
 		err = crash(opts)
 	default:
-		fmt.Printf("Unknown subcommand %s!\n", subcommand)
+		fmt.Fprintf(os.Stderr, "Unknown subcommand %s!\n", subcommand)
 		print_help()
 	}
 
 	if err != nil {
-		fmt.Printf("Error while running subcommand '%s': %s\n", subcommand, err.Error())
+		fmt.Fprintf(os.Stderr, "Error while running subcommand '%s': %s\n", subcommand, err.Error())
 		os.Exit(1)
 	}
 }
