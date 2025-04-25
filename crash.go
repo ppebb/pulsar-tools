@@ -234,20 +234,31 @@ func resolveSyms(addr uint32, region string) string {
 	return ret
 }
 
-func padExponent(exp string, width int) string {
-	var sign string
+func padExponent(floatStr string, width int) string {
+	neg := ""
 
-	if strings.Contains(exp, "+") {
-		sign = "+"
-	} else {
-		sign = "-"
+	// Floats may begin with a negative sign or nothing, and then have a plus
+	// or minus separating the exponent
+
+	// Take the minus off so splitting by the exponent's sign is easier
+	if floatStr[0] == '-' {
+		neg = "-"
+		floatStr = floatStr[1:]
 	}
 
-	splits := strings.Split(exp, sign)
+	var expSign string
+
+	if strings.Contains(floatStr, "+") {
+		expSign = "+"
+	} else {
+		expSign = "-"
+	}
+
+	splits := strings.Split(floatStr, expSign)
 
 	if len(splits) != 2 {
-		return exp
+		return floatStr
 	}
 
-	return splits[0] + sign + strings.Repeat("0", width-len(splits[1])) + splits[1]
+	return neg + splits[0] + expSign + strings.Repeat("0", width-len(splits[1])) + splits[1]
 }
