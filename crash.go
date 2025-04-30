@@ -1,3 +1,5 @@
+// This file is licened under MIT, see `LICENSE_PULSAR` at the root of this repository!
+
 package main
 
 import (
