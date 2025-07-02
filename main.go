@@ -25,6 +25,8 @@ ppeb's pulsar tools!!!
 Usage: ./pulsar-tools [subcommand] [options]
  crash            Analyze crashdump
      -f|--file        Crashdump to analyze. Pass 'stdin' to accept a crashdump over stdin
+ import-config    Analyze a config.pul file
+     -f|--file        Config to analyze. Pass 'stdin' to accept a crashdump over stdin
 `)
 
 	os.Exit(1)
@@ -52,6 +54,8 @@ func main() {
 		print_help()
 	case "crash":
 		err = crash(opts)
+	case "import-config":
+		err = import_config(opts)
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown subcommand %s!\n", subcommand)
 		print_help()

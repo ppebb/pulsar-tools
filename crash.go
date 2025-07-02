@@ -14,20 +14,77 @@ import (
 )
 
 var (
-	ErrNoCrashdump = errors.New("No crashdump was provided! A crashdump is required to analyze.")
-	ErrMagic       = errors.New("Mismatched magic bits! Crash file appears to be invalid.")
+	ErrNoCrashdump    = errors.New("No crashdump was provided! A crashdump is required to analyze.")
+	ErrCrashdumpMagic = errors.New("Mismatched magic bits! Crash file appears to be invalid.")
 )
 
 const (
 	FmtErrTooShort = "The provided crashdump was too short (%d bytes) to analyze."
 )
 
-var (
-	file = ""
-)
+func DeserializeExceptionFile(bytes []byte) (ExceptionFile, error) {
+	var ret ExceptionFile
+
+	err := verifyMagic(bytes)
+	if err != nil {
+		return ret, err
+	}
+
+	_, err = UnmarshalPulsarType(bytes, &ret)
+	return ret, err
+}
+
+func (exFile *ExceptionFile) ToString() string {
+	region := string(byte(exFile.Region))
+
+	ret := "" +
+		fmt.Sprintf("Error: %s\n", oserrorString(OSERROR(exFile.Err))) +
+		fmt.Sprintf("Region: %s\n", region) +
+		fmt.Sprintf("SSR0: 0x%x, %s\n", exFile.Srr0.Gpr, resolveSyms(exFile.Srr0.Gpr, region)) +
+		fmt.Sprintf("SSR1: 0x%x\n", exFile.Srr1.Gpr) +
+		fmt.Sprintf("MSR:  0x%x\n", exFile.Msr.Gpr) +
+		fmt.Sprintf("CR:   0x%x\n", exFile.Cr.Gpr) +
+		fmt.Sprintf("LR:   0x%x, %s\n", exFile.Lr.Gpr, resolveSyms(exFile.Lr.Gpr, region)) +
+		"\nGPRs\n"
+
+	for i := range 8 {
+		for j := range 4 {
+			idx := i + j*8
+			ret += fmt.Sprintf("R%02d: 0x%08x ", idx, exFile.Gprs[idx].Gpr)
+		}
+
+		ret += "\n"
+	}
+
+	ret += fmt.Sprintf("\nFPRs FSCR: 0x%016x\n", math.Float64bits(exFile.Fpscr.Fpr))
+	for i := range 8 {
+		for j := range 4 {
+			idx := i + j*8
+			exp := padExponent(fmt.Sprintf("% 03.02e", exFile.Fprs[idx].Fpr), 3)
+			ret += fmt.Sprintf("F%.2d: %s ", idx, exp)
+		}
+
+		ret += "\n"
+	}
+
+	ret += "\nStack Frame\n"
+	for i := range 10 {
+		ret += fmt.Sprintf(
+			"SP: 0x%x, LR: 0x%08x, %s\n",
+			exFile.Frames[i].Sp,
+			exFile.Frames[i].Lr,
+			resolveSyms(exFile.Frames[i].Lr, region),
+		)
+	}
+
+	// Trim the final \n
+	return ret[:len(ret)-2]
+}
 
 func crash(opts []string) error {
+	var file string
 	optsLen := len(opts)
+
 	for i := 0; i < optsLen; i++ {
 		opt := opts[i]
 
@@ -54,64 +111,12 @@ func crash(opts []string) error {
 		bytes, err = os.ReadFile(file)
 	}
 
+	exFile, err := DeserializeExceptionFile(bytes)
 	if err != nil {
 		return err
 	}
 
-	err = verifyMagic(bytes)
-	if err != nil {
-		return err
-	}
-
-	var exFile ExceptionFile
-	err = UnmarshalPulsarType(bytes, &exFile)
-	if err != nil {
-		return err
-	}
-
-	region := string(byte(exFile.Region))
-
-	out := "" +
-		fmt.Sprintf("Error: %s\n", oserrorString(OSERROR(exFile.Err))) +
-		fmt.Sprintf("Region: %s\n", region) +
-		fmt.Sprintf("SSR0: 0x%x, %s\n", exFile.Srr0.Gpr, resolveSyms(exFile.Srr0.Gpr, region)) +
-		fmt.Sprintf("SSR1: 0x%x\n", exFile.Srr1.Gpr) +
-		fmt.Sprintf("MSR:  0x%x\n", exFile.Msr.Gpr) +
-		fmt.Sprintf("CR:   0x%x\n", exFile.Cr.Gpr) +
-		fmt.Sprintf("LR:   0x%x, %s\n", exFile.Lr.Gpr, resolveSyms(exFile.Lr.Gpr, region)) +
-		"\nGPRs\n"
-
-	for i := range 8 {
-		for j := range 4 {
-			idx := i + j*8
-			out += fmt.Sprintf("R%02d: 0x%08x ", idx, exFile.Gprs[idx].Gpr)
-		}
-
-		out += "\n"
-	}
-
-	out += fmt.Sprintf("\nFPRs FSCR: 0x%016x\n", math.Float64bits(exFile.Fpscr.Fpr))
-	for i := range 8 {
-		for j := range 4 {
-			idx := i + j*8
-			exp := padExponent(fmt.Sprintf("% 03.02e", exFile.Fprs[idx].Fpr), 3)
-			out += fmt.Sprintf("F%.2d: %s ", idx, exp)
-		}
-
-		out += "\n"
-	}
-
-	out += "\nStack Frame\n"
-	for i := range 10 {
-		out += fmt.Sprintf(
-			"SP: 0x%x, LR: 0x%08x, %s\n",
-			exFile.Frames[i].Sp,
-			exFile.Frames[i].Lr,
-			resolveSyms(exFile.Frames[i].Lr, region),
-		)
-	}
-
-	fmt.Println(out)
+	fmt.Println(exFile)
 
 	return nil
 }
@@ -125,7 +130,7 @@ func verifyMagic(bytes []byte) error {
 
 	fmagic := int(bytes[3]) | int(bytes[2])<<8 | int(bytes[1])<<16 | int(bytes[0])<<24
 	if fmagic != MAGIC {
-		return ErrMagic
+		return ErrCrashdumpMagic
 	}
 
 	return nil
