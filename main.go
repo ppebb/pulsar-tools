@@ -30,6 +30,10 @@ Usage: ./pulsar-tools [subcommand] [options]
 	os.Exit(1)
 }
 
+type Arguments struct {
+	Verbose bool
+}
+
 func main() {
 	if len(os.Args) <= 1 {
 		fmt.Fprintln(os.Stderr, "No arguments provided! A subcommand is required to continue.")
@@ -45,13 +49,25 @@ func main() {
 		opts = []string{}
 	}
 
+	args := Arguments{}
+
+	if len(os.Args) > 2 {
+		for i := 2; i < len(os.Args); i++ {
+			arg := os.Args[i]
+			switch arg {
+			case "-v", "--verbose":
+				args.Verbose = true
+			}
+		}
+	}
+
 	var err error
 
 	switch subcommand {
 	case "-h", "--help", "help":
 		print_help()
 	case "crash":
-		err = crash(opts)
+		err = crash(opts, args)
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown subcommand %s!\n", subcommand)
 		print_help()

@@ -26,7 +26,7 @@ var (
 	file = ""
 )
 
-func crash(opts []string) error {
+func crash(opts []string, args Arguments) error {
 	optsLen := len(opts)
 	for i := 0; i < optsLen; i++ {
 		opt := opts[i]
@@ -37,8 +37,8 @@ func crash(opts []string) error {
 				file = opts[i+1]
 				i++
 			}
-		default:
-			return fmt.Errorf("Unknown option for subcommand 'crash', '%s'!\n", opt)
+			// default:
+			// return fmt.Errorf("Unknown option for subcommand 'crash', '%s'!\n", opt)
 		}
 	}
 
@@ -74,11 +74,11 @@ func crash(opts []string) error {
 	out := "" +
 		fmt.Sprintf("Error: %s\n", oserrorString(OSERROR(exFile.Err))) +
 		fmt.Sprintf("Region: %s\n", region) +
-		fmt.Sprintf("SSR0: 0x%x, %s\n", exFile.Srr0.Gpr, resolveSyms(exFile.Srr0.Gpr, region)) +
+		fmt.Sprintf("SSR0: 0x%x, %s\n", exFile.Srr0.Gpr, resolveSyms(args, exFile.Srr0.Gpr, region)) +
 		fmt.Sprintf("SSR1: 0x%x\n", exFile.Srr1.Gpr) +
 		fmt.Sprintf("MSR:  0x%x\n", exFile.Msr.Gpr) +
 		fmt.Sprintf("CR:   0x%x\n", exFile.Cr.Gpr) +
-		fmt.Sprintf("LR:   0x%x, %s\n", exFile.Lr.Gpr, resolveSyms(exFile.Lr.Gpr, region)) +
+		fmt.Sprintf("LR:   0x%x, %s\n", exFile.Lr.Gpr, resolveSyms(args, exFile.Lr.Gpr, region)) +
 		"\nGPRs\n"
 
 	for i := range 8 {
@@ -107,7 +107,7 @@ func crash(opts []string) error {
 			"SP: 0x%x, LR: 0x%08x, %s\n",
 			exFile.Frames[i].Sp,
 			exFile.Frames[i].Lr,
-			resolveSyms(exFile.Frames[i].Lr, region),
+			resolveSyms(args, exFile.Frames[i].Lr, region),
 		)
 	}
 
@@ -144,9 +144,20 @@ func oserrorString(err OSERROR) string {
 	return "Unknown"
 }
 
+func verboseParseError(args Arguments, addr uint32, postfix string, a ...any) string {
+	prefix := fmt.Sprintf("Failed to resolve symbols for 0x%08x!", addr)
+
+	if !args.Verbose {
+		return prefix
+	}
+
+	postfixFmt := fmt.Sprintf(postfix, a...)
+	return prefix + " " + postfixFmt
+}
+
 // Fuck if I know what any of this is. All stolen from Pulsar Crash.xaml.cs.
 // Thank god for MIT licensing or I'd've been done for.
-func resolveSyms(addr uint32, region string) string {
+func resolveSyms(args Arguments, addr uint32, region string) string {
 	ret := ""
 	defer func() {
 		if r := recover(); r != nil {
@@ -184,19 +195,19 @@ func resolveSyms(addr uint32, region string) string {
 
 			offset, err := strconv.ParseUint(noPrefixOffset, 16, 32)
 			if err != nil {
-				return fmt.Sprintf("Failed to resolve symbols for 0x%08x. Unable to parse addr offset '%s'! %s", addr, noPrefixOffset, err)
+				return verboseParseError(args, addr, "Unable to parse addr offset '%s'! %s", noPrefixOffset, err)
 			}
 
 			palAddr := uint32(int32(addr) - isNegative*int32(offset))
 
 			lower, err := strconv.ParseUint(curSplice[0], 16, 32)
 			if err != nil {
-				return fmt.Sprintf("Failed to resolve symbols for 0x%08x. Unable to parse lower address '%s'! %s", addr, curSplice[0], err)
+				return verboseParseError(args, addr, "Unable to parse lower address '%s'! %s", curSplice[0], err)
 			}
 
 			upper, err := strconv.ParseUint(curSplice[1], 16, 32)
 			if err != nil {
-				return fmt.Sprintf("Failed to resolve symbols for 0x%08x. Unable to parse upper address '%s'! %s", addr, curSplice[1], err)
+				return verboseParseError(args, addr, "Unable to parse upper address '%s'! %s", curSplice[1], err)
 			}
 
 			if uint32(lower) <= palAddr && palAddr < uint32(upper) {
@@ -214,12 +225,12 @@ func resolveSyms(addr uint32, region string) string {
 
 		curNum, err := strconv.ParseUint(curLine[0], 16, 32)
 		if err != nil {
-			return fmt.Sprintf("Failed to resolve symbols for 0x%08x. Unable to parse curNum '%s'! %s", addr, curLine[0], err)
+			return verboseParseError(args, addr, "Unable to parse curNum '%s'! %s", curLine[0], err)
 		}
 
 		nextNum, err := strconv.ParseUint(nextLine[0], 16, 32)
 		if err != nil {
-			return fmt.Sprintf("Failed to resolve symbols for 0x%08x. Unable to parse nextNum '%s'! %s", addr, nextLine[0], err)
+			return verboseParseError(args, addr, "Unable to parse nextNum '%s'! %s", nextLine[0], err)
 		}
 
 		if curNum <= uint64(addr) && uint64(addr) < nextNum {
