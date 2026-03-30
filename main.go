@@ -25,6 +25,8 @@ ppeb's pulsar tools!!!
 Usage: ./pulsar-tools [subcommand] [options]
  crash            Analyze crashdump
      -f|--file        Crashdump to analyze. Pass 'stdin' to accept a crashdump over stdin
+ hash             Generates a unique hash based on certain code sections.
+     -f|--file        Code.pul to hash. Pass 'stdin' to accept a crashdump over stdin
 `)
 
 	os.Exit(1)
@@ -68,6 +70,8 @@ func main() {
 		print_help()
 	case "crash":
 		err = crash(opts, args)
+	case "hash":
+		err = hash(opts, args)
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown subcommand %s!\n", subcommand)
 		print_help()
