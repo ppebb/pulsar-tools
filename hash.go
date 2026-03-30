@@ -5,8 +5,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"io"
-	"os"
 )
 
 var (
@@ -34,14 +32,7 @@ func hash(opts []string, _ Arguments) error {
 		return ErrNoCode
 	}
 
-	var bytes []byte
-	var err error
-	if file == "stdin" {
-		bytes, err = io.ReadAll(os.Stdin)
-	} else {
-		bytes, err = os.ReadFile(file)
-	}
-
+	bytes, err := readFile(file)
 	if err != nil {
 		return err
 	}

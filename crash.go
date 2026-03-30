@@ -5,9 +5,7 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io"
 	"math"
-	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -22,11 +20,8 @@ const (
 	FmtErrTooShort = "The provided crashdump was too short (%d bytes) to analyze."
 )
 
-var (
-	file = ""
-)
-
 func crash(opts []string, args Arguments) error {
+	file := ""
 	optsLen := len(opts)
 	for i := 0; i < optsLen; i++ {
 		opt := opts[i]
@@ -46,14 +41,7 @@ func crash(opts []string, args Arguments) error {
 		return ErrNoCrashdump
 	}
 
-	var bytes []byte
-	var err error
-	if file == "stdin" {
-		bytes, err = io.ReadAll(os.Stdin)
-	} else {
-		bytes, err = os.ReadFile(file)
-	}
-
+	bytes, err := readFile(file)
 	if err != nil {
 		return err
 	}
