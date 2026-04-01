@@ -6,6 +6,9 @@ A collection of tools for working with [Pulsar's](https://github.com/MelgMKW/Pul
 
 Crash Summary: View stacktraces and register values stores in a `crash.pul` file.
 
+Hashing: Get the sha1 hash for the code of each region (PAL, NTSC-U, NTSC-J,
+NTSC-K). Can be used for checking integrity.
+
 ## Usage
 All features are available as command line switches (see `./pulsar-tools --help`). Certain features are also available through Retro Rewind's [wfc-bot](https://github.com/Retro-Rewind-Team/wfc-bot) (also written by me) on the Retro Rewind Discord.
 
