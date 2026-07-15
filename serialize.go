@@ -24,6 +24,18 @@ func unmarshalPulsarTypeInner(bytes []byte, offset *int, out *reflect.Value) err
 		pulsarType = pulsarType.Elem()
 	}
 
+	kind := pulsarType.Kind()
+	if kind != reflect.Struct && kind != reflect.Array {
+		prim := reflect.New(pulsarType).Elem()
+		err := unmarshalPrimitive(bytes, offset, &prim)
+		if err != nil {
+			return err
+		}
+
+		out.Set(prim)
+		return nil
+	}
+
 	fields := reflect.VisibleFields(pulsarType)
 
 	for i, field := range fields {

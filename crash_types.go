@@ -31,18 +31,41 @@ type StackFrame struct {
 	Lr     uint32
 }
 
+const (
+	EXCEPTION_FILE_VERSION                         = 3
+	EXCEPTION_FLAG_LOOSE_ARCHIVE_OVERRIDES_ENABLED = 1 << 0
+	EXCEPTION_FLAG_CUSTOM_CHARACTER_ENABLED        = 1 << 1
+	EXCEPTION_MAX_TRACK_SZS_LENGTH                 = 64
+	EXCEPTION_MYSTUFF_DISABLED                     = 0
+	EXCEPTION_MYSTUFF_ENABLED                      = 1
+	EXCEPTION_MYSTUFF_MUSIC_ONLY                   = 2
+)
+
+type CrashExtra struct {
+	Version                uint32
+	SectionID              int32
+	PageID                 int32
+	Context                uint32
+	Context2               uint32
+	Flags                  uint32
+	LooseOverrideFileCount uint32
+	MyStuffState           uint32
+	LastTrackSZS           [EXCEPTION_MAX_TRACK_SZS_LENGTH]byte
+}
+
 type ExceptionFile struct {
-	Magic    uint32
-	Region   uint32
-	Reserved uint32
-	Err      uint32
-	Srr0     GPR
-	Srr1     GPR
-	Msr      GPR
-	Cr       GPR
-	Lr       GPR
-	Gprs     [32]GPR
-	Fprs     [32]FPR
-	Fpscr    FPR
-	Frames   [10]StackFrame
+	Magic   uint32
+	Region  uint32
+	Version uint32
+	Err     uint32
+	Srr0    GPR
+	Srr1    GPR
+	Msr     GPR
+	Cr      GPR
+	Lr      GPR
+	Gprs    [32]GPR
+	Fprs    [32]FPR
+	Fpscr   FPR
+	Frames  [10]StackFrame
+	Extra   CrashExtra
 }

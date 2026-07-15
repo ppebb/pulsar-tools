@@ -3,12 +3,14 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"math"
 	"slices"
 	"strconv"
 	"strings"
+	"unsafe"
 )
 
 var (
@@ -52,6 +54,15 @@ func crash(opts []string, args Arguments) error {
 	}
 
 	var exFile ExceptionFile
+
+	bytesLen := len(bytes)
+	exFileSize := int(unsafe.Sizeof(exFile))
+	if bytesLen < exFileSize {
+		newBytes := slices.Repeat([]byte{0}, exFileSize)
+		copy(newBytes, bytes)
+		bytes = newBytes
+	}
+
 	err = UnmarshalPulsarType(bytes, &exFile)
 	if err != nil {
 		return err
@@ -62,6 +73,7 @@ func crash(opts []string, args Arguments) error {
 	out := "" +
 		fmt.Sprintf("Error: %s\n", oserrorString(OSERROR(exFile.Err))) +
 		fmt.Sprintf("Region: %s\n", region) +
+		buildCrashMetadata(exFile) +
 		fmt.Sprintf("SSR0: 0x%x, %s\n", exFile.Srr0.Gpr, resolveSyms(args, exFile.Srr0.Gpr, region)) +
 		fmt.Sprintf("SSR1: 0x%x\n", exFile.Srr1.Gpr) +
 		fmt.Sprintf("MSR:  0x%x\n", exFile.Msr.Gpr) +
@@ -262,4 +274,77 @@ func padExponent(floatStr string, width int) string {
 	}
 
 	return neg + splits[0] + expSign + strings.Repeat("0", width-len(splits[1])) + splits[1]
+}
+
+func buildCrashMetadata(exFile ExceptionFile) string {
+	if exFile.Extra.Version < 2 {
+		return "\n"
+	}
+
+	cmr := NewCrashMetadataResolver()
+
+	var builder strings.Builder
+	builder.WriteString("\nSection:                  ")
+	builder.WriteString(formatNamedID(exFile.Extra.SectionID, cmr.getSectionName(int(exFile.Extra.SectionID))))
+
+	builder.WriteString("\nPage:                     ")
+	builder.WriteString(formatNamedID(exFile.Extra.PageID, cmr.getSectionName(int(exFile.Extra.PageID))))
+
+	nullTerm := bytes.Index(exFile.Extra.LastTrackSZS[:], []byte{0})
+	lastTrackSZS := strings.TrimSpace(string(exFile.Extra.LastTrackSZS[:nullTerm]))
+	if len(lastTrackSZS) == 0 {
+		lastTrackSZS = "Unknown"
+	}
+
+	builder.WriteString("\nLast Track SZS:           ")
+	builder.WriteString(lastTrackSZS)
+
+	builder.WriteString("\nContexts:                 ")
+	builder.WriteString(cmr.getEnabledContexts(uint(exFile.Extra.Context), uint(exFile.Extra.Context2)))
+
+	builder.WriteString("\nCustom Character Enabled: ")
+	builder.WriteString(strconv.FormatBool((exFile.Extra.Flags & EXCEPTION_FLAG_CUSTOM_CHARACTER_ENABLED) != 0))
+
+	builder.WriteString("\nMy Stuff:                 ")
+	builder.WriteString(getMyStuffState(uint(exFile.Extra.Version), uint(exFile.Extra.MyStuffState)))
+
+	builder.WriteString("\nPatches Enabled:          ")
+	builder.WriteString(strconv.FormatBool((exFile.Extra.Flags & EXCEPTION_FLAG_LOOSE_ARCHIVE_OVERRIDES_ENABLED) != 0))
+
+	builder.WriteString("\nPatches Folder Has Files: ")
+	builder.WriteString(
+		fmt.Sprintf(
+			"%s (%d)",
+			strconv.FormatBool(exFile.Extra.LooseOverrideFileCount > 0),
+			exFile.Extra.LooseOverrideFileCount))
+	builder.WriteString("\n\n")
+
+	return builder.String()
+}
+
+func getMyStuffState(version uint, myStuffState uint) string {
+	if version < 3 {
+		return "Unknown"
+	}
+
+	switch myStuffState {
+	case 1:
+		return "Enabled"
+	case 2:
+		return "Music Only"
+	default:
+		return "Disabled"
+	}
+}
+
+func formatNamedID(id int32, name string) string {
+	if id < 0 {
+		return "Unknown"
+	}
+
+	if len(strings.TrimSpace(name)) == 0 {
+		return fmt.Sprintf("0x%x", id)
+	}
+
+	return fmt.Sprintf("%s (0x%x)", name, id)
 }

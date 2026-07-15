@@ -1,0 +1,3 @@
+[submodule "rr-pulsar"]
+	path = rr-pulsar
+	url = https://github.com/Retro-Rewind-Team/rr-pulsar.git

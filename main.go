@@ -16,6 +16,15 @@ var (
 
 	//go:embed resources/versions
 	versions string
+
+	//go:embed resources/PulsarSystem
+	pulsarSystemHpp string
+
+	//go:embed resources/Identifiers
+	pulsarIdentifiers string
+
+	//go:embed resources/PulsarUI
+	pulsarUI string
 )
 
 func print_help() {
