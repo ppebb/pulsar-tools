@@ -288,7 +288,7 @@ func buildCrashMetadata(exFile ExceptionFile) string {
 	cmr := NewCrashMetadataResolver()
 
 	var builder strings.Builder
-	builder.WriteString("\nSection:                  ")
+	builder.WriteString("\nSection:          ")
 	builder.WriteString(formatNamedID(exFile.Extra.SectionID, cmr.getSectionName(int(exFile.Extra.SectionID))))
 
 	builder.WriteString("\nPage:             ")
@@ -300,27 +300,31 @@ func buildCrashMetadata(exFile ExceptionFile) string {
 		lastTrackSZS = "Unknown"
 	}
 
-	builder.WriteString("\nLast Track SZS:           ")
+	builder.WriteString("\nLast Track SZS:   ")
 	builder.WriteString(lastTrackSZS)
 
-	builder.WriteString("\nContexts:                 ")
+	builder.WriteString("\nContexts:         ")
 	builder.WriteString(cmr.getEnabledContexts(uint(exFile.Extra.Context), uint(exFile.Extra.Context2)))
 
-	builder.WriteString("\nCustom Character Enabled: ")
-	builder.WriteString(strconv.FormatBool((exFile.Extra.Flags & EXCEPTION_FLAG_CUSTOM_CHARACTER_ENABLED) != 0))
+	builder.WriteString("\nCustom Character: ")
+	if (exFile.Extra.Flags & EXCEPTION_FLAG_CUSTOM_CHARACTER_ENABLED) != 0 {
+		builder.WriteString("Enabled")
+	} else {
+		builder.WriteString("Disabled")
+	}
 
-	builder.WriteString("\nMy Stuff:                 ")
+	builder.WriteString("\nMy Stuff:         ")
 	builder.WriteString(getMyStuffState(uint(exFile.Extra.Version), uint(exFile.Extra.MyStuffState)))
 
-	builder.WriteString("\nPatches Enabled:          ")
-	builder.WriteString(strconv.FormatBool((exFile.Extra.Flags & EXCEPTION_FLAG_LOOSE_ARCHIVE_OVERRIDES_ENABLED) != 0))
+	builder.WriteString("\nPatches:          ")
+	if (exFile.Extra.Flags & EXCEPTION_FLAG_LOOSE_ARCHIVE_OVERRIDES_ENABLED) != 0 {
+		builder.WriteString("Enabled")
+	} else {
+		builder.WriteString("Disabled")
+	}
 
-	builder.WriteString("\nPatches Folder Has Files: ")
-	builder.WriteString(
-		fmt.Sprintf(
-			"%s (%d)",
-			strconv.FormatBool(exFile.Extra.LooseOverrideFileCount > 0),
-			exFile.Extra.LooseOverrideFileCount))
+	builder.WriteString("\nPatch Files:      ")
+	builder.WriteString(fmt.Sprintf("%d", exFile.Extra.LooseOverrideFileCount))
 	builder.WriteString("\n\n")
 
 	return builder.String()
