@@ -291,8 +291,8 @@ func buildCrashMetadata(exFile ExceptionFile) string {
 	builder.WriteString("\nSection:                  ")
 	builder.WriteString(formatNamedID(exFile.Extra.SectionID, cmr.getSectionName(int(exFile.Extra.SectionID))))
 
-	builder.WriteString("\nPage:                     ")
-	builder.WriteString(formatNamedID(exFile.Extra.PageID, cmr.getSectionName(int(exFile.Extra.PageID))))
+	builder.WriteString("\nPage:             ")
+	builder.WriteString(formatNamedID(exFile.Extra.PageID, cmr.getPageName(int(exFile.Extra.PageID))))
 
 	nullTerm := bytes.Index(exFile.Extra.LastTrackSZS[:], []byte{0})
 	lastTrackSZS := strings.TrimSpace(string(exFile.Extra.LastTrackSZS[:nullTerm]))
