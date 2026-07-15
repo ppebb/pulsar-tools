@@ -4,7 +4,7 @@ A collection of tools for working with [Pulsar's](https://github.com/MelgMKW/Pul
 
 ## Features
 
-Crash Summary: View stacktraces and register values stores in a `crash.pul` file.
+Crash Summary: View stacktraces and register values stored in a `crash.pul` file.
 
 Hashing: Get the sha1 hash for the code of each region (PAL, NTSC-U, NTSC-J,
 NTSC-K). Can be used for checking integrity.
