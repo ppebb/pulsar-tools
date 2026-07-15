@@ -248,6 +248,10 @@ func resolveSyms(args Arguments, addr uint32, region string) string {
 }
 
 func padExponent(floatStr string, width int) string {
+	if floatStr == " NaN" {
+		return "       NaN"
+	}
+
 	neg := ""
 
 	// Floats may begin with a negative sign or nothing, and then have a plus
